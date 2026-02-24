@@ -52,3 +52,14 @@ export const submitExam = async (examId, answers) => {
     throw error.response?.data || error.message;
   }
 };
+
+
+
+export const getAttemptedExams = async () => {
+  try {
+    const response = await api.get("/student/exams/attempted");
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};

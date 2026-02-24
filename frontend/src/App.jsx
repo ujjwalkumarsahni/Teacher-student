@@ -114,7 +114,6 @@ import ExamResultsVerification from "./pages/employee/ExamResultsVerification.js
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import ExamPage from "./pages/student/ExamPage.jsx";
 import MyResults from "./pages/student/MyResults.jsx";
-import DetailedResult from "./pages/student/DetailedResult.jsx";
 
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -179,15 +178,6 @@ function App() {
           element={
             <ProtectedRoute role="student">
               <ExamPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/student/result/:examId"
-          element={
-            <ProtectedRoute role="student">
-              <DetailedResult />
             </ProtectedRoute>
           }
         />

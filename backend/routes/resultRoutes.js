@@ -7,11 +7,12 @@ import {
   verifyAllResults,
   getStudentResults,
   getStudentExamResult,
-  getAttemptDetails
+  getAttemptDetails,
+  verifyCertificatePublic
 } from "../controllers/resultController.js";
 
 const router = express.Router();
-
+router.get("/public/verify/:certificateId", verifyCertificatePublic);
 /* ================= COMMON MIDDLEWARE ================= */
 router.use(authenticate);
 

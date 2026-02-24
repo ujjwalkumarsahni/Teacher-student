@@ -56,6 +56,12 @@ const examAttemptSchema = new mongoose.Schema(
       enum: ["in_progress", "submitted"],
       default: "in_progress",
     },
+
+    certificateId: {
+  type: String,
+  unique: true,
+  index: true
+},
     // New fields for result verification
     isVerified: {
       type: Boolean,
