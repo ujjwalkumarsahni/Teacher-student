@@ -3,34 +3,18 @@ import { authenticate } from "../middleware/auth.js";
 import {
   registerStudent,
   bulkRegisterStudentsExcel,
-  getAllStudents
+  getAllStudents,
+  getRecentStudents
 } from "../controllers/studentController.js";
-import upload from "../middleware/upload.js"; // multer config
+import upload from "../middleware/upload.js"; 
 
 const router = express.Router();
-
+router.use(authenticate);
 /* ================= STUDENT ROUTES ================= */
 
-// Employee registers single student
-router.post(
-  "/register",
-  authenticate,
-  registerStudent
-);
-
-// Employee bulk upload
-router.post(
-  "/bulk-upload",
-  authenticate,
-  upload.single("file"),
-  bulkRegisterStudentsExcel
-);
-
-// Get students (role-based: employee/admin)
-router.get(
-  "/",
-  authenticate,
-  getAllStudents
-);
+router.post('/register', registerStudent);
+router.post('/bulk-upload', upload.single('file'), bulkRegisterStudentsExcel);
+router.get('/recent', getRecentStudents);
+router.get("/", getAllStudents);
 
 export default router;

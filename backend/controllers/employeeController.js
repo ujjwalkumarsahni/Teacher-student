@@ -270,8 +270,6 @@ export const getEmployeeById = async (req, res) => {
   }
 };
 
-
-
 const getEmployeeSchool = async (userId) => {
   const employee = await Employee.findOne({ user: userId });
 
@@ -439,7 +437,6 @@ export const bulkRegisterStudentsExcel = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
 
 export const getAllStudents = async (req, res) => {
   try {

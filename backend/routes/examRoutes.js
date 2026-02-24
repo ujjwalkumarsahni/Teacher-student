@@ -1,71 +1,52 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.js";
-import { createExam, createQuestion, getAvailableExams, getExamQuestions, getExamResults, publishExam, startExam, submitExam } from "../controllers/ExamController.js";
+import {
+  createExam,
+  updateExam,          // ✅ add
+  deleteExam,          // ✅ add
+  getMyExams,
+  getExamDetails,
+  createQuestion,
+  deleteQuestion,
+  publishExam,
+  getExamResults,
+  getEmployeeExams
+} from "../controllers/ExamController.js";
+
 const router = express.Router();
 
-/* ===========================
-   EMPLOYEE ROUTES
-=========================== */
+router.use(authenticate);
 
-// Create new exam
-router.post(
-  "/",
-  authenticate,
-  createExam
-);
+/* ================= EMPLOYEE EXAM ROUTES ================= */
 
-// Add question to exam
-router.post(
-  "/question",
-  authenticate,
-  createQuestion
-);
+// Create exam
+router.post("/", createExam);
+
+// Get all exams (dashboard list with stats)
+router.get("/", getEmployeeExams);
+
+// Get exams (older version if needed)
+router.get("/my-exams", getMyExams);
+
+// Update exam
+router.put("/:examId", updateExam);
+
+// Delete exam (also deletes questions + attempts)
+router.delete("/:examId", deleteExam);
+
+// Get single exam details with questions
+router.get("/:examId", getExamDetails);
+
+// Add question
+router.post("/question", createQuestion);
+
+// Delete question
+router.delete("/question/:questionId", deleteQuestion);
 
 // Publish exam
-router.post(
-  "/publish",
-  authenticate,
-  publishExam
-);
+router.post("/publish", publishExam);
 
-
-/* ===========================
-   STUDENT ROUTES
-=========================== */
-
-// Get available exams for logged in student
-router.get(
-  "/available",
-  authenticate,
-  getAvailableExams
-);
-
-// Start exam
-router.post(
-  "/start",
-  authenticate,
-  startExam
-);
-
-// Get exam questions (after start)
-router.get(
-  "/:examId/questions",
-  authenticate,
-  getExamQuestions
-);
-
-// Submit exam
-router.post(
-  "/submit",
-  authenticate,
-  submitExam
-);
-
-
-router.get(
-  "/:examId/results",
-  authenticate,
-  getExamResults
-);
+// Get exam results
+router.get("/:examId/results", getExamResults);
 
 export default router;

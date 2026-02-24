@@ -1,32 +1,76 @@
 import mongoose from "mongoose";
 
-const answerSchema = new mongoose.Schema({
-  question: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Question"
+const answerSchema = new mongoose.Schema(
+  {
+    question: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Question",
+    },
+    selectedOption: Number,
   },
-  selectedOption: Number
-}, { _id: false });
+  { _id: false },
+);
 
-const examAttemptSchema = new mongoose.Schema({
-  exam: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Exam"
+const examAttemptSchema = new mongoose.Schema(
+  {
+    exam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Exam",
+      required: true,
+    },
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
+    startedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    submittedAt: {
+      type: Date,
+    },
+    answers: [
+      {
+        question: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Question",
+        },
+        selectedOption: {
+          type: Number,
+          min: 0,
+          max: 3,
+        },
+      },
+    ],
+    endsAt: {
+      type: Date,
+      required: true,
+    },
+    score: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      enum: ["in_progress", "submitted"],
+      default: "in_progress",
+    },
+    // New fields for result verification
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verifiedAt: {
+      type: Date,
+    },
+    remarks: {
+      type: String,
+      default: "",
+    },
   },
-  student: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Student"
-  },
-  answers: [answerSchema],
-  score: Number,
-  startedAt: Date,
-  submittedAt: Date,
-  status: {
-    type: String,
-    enum: ["in_progress", "submitted"],
-    default: "in_progress"
-  }
-}, { timestamps: true });
+  { timestamps: true },
+);
 
 examAttemptSchema.index({ exam: 1, student: 1 }, { unique: true });
 

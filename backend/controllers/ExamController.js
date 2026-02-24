@@ -2,7 +2,7 @@ import Employee from "../models/Employee.js";
 import EmployeePosting from "../models/EmployeePosting.js";
 import Exam from "../models/Exam.js";
 import Question from "../models/Question.js";
-import Student from "../models/student.js";
+import Student from "../models/Student.js";
 import ExamAttempt from "../models/ExamAttempt.js";
 
 const getEmployeeSchool = async (userId) => {
@@ -27,6 +27,7 @@ const getEmployeeSchool = async (userId) => {
   };
 };
 
+// Create exam
 export const createExam = async (req, res) => {
   try {
     if (req.user.role !== "employee") {
@@ -35,7 +36,8 @@ export const createExam = async (req, res) => {
         .json({ message: "Only employees can create exams" });
     }
 
-    const { title, grade, subject, startTime, duration } = req.body;
+    const { title, grade, subject, startTime, duration, description } =
+      req.body;
 
     if (!title || !grade || !subject || !startTime || !duration) {
       return res.status(400).json({ message: "All fields required" });
@@ -53,7 +55,7 @@ export const createExam = async (req, res) => {
         .json({ message: "Duration must be greater than 0" });
     }
 
-    // 🔥 Auto calculate endTime
+    // Auto calculate endTime
     const end = new Date(start.getTime() + duration * 60000);
 
     const { employeeId, schoolId } = await getEmployeeSchool(req.user._id);
@@ -66,11 +68,12 @@ export const createExam = async (req, res) => {
       startTime: start,
       endTime: end,
       duration,
+      description,
       status: "draft",
       createdByEmployee: employeeId,
     });
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Exam created successfully",
       exam,
@@ -80,6 +83,88 @@ export const createExam = async (req, res) => {
   }
 };
 
+// Get my exams (for employee)
+export const getMyExams = async (req, res) => {
+  try {
+    if (req.user.role !== "employee") {
+      return res.status(403).json({ message: "Only employees can view exams" });
+    }
+
+    const { schoolId } = await getEmployeeSchool(req.user._id);
+
+    const exams = await Exam.find({ school: schoolId })
+      .sort({ createdAt: -1 })
+      .populate("createdByEmployee", "user")
+      .populate({
+        path: "createdByEmployee",
+        populate: {
+          path: "user",
+          select: "name",
+        },
+      });
+
+    // Get question count for each exam
+    const examsWithCount = await Promise.all(
+      exams.map(async (exam) => {
+        const questionCount = await Question.countDocuments({ exam: exam._id });
+        return {
+          ...exam.toObject(),
+          questionCount,
+        };
+      }),
+    );
+
+    res.json({
+      success: true,
+      exams: examsWithCount,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Get exam details with questions
+export const getExamDetails = async (req, res) => {
+  try {
+    const { examId } = req.params;
+
+    const exam = await Exam.findById(examId)
+      .populate("createdByEmployee", "user")
+      .populate({
+        path: "createdByEmployee",
+        populate: {
+          path: "user",
+          select: "name",
+        },
+      });
+
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+
+    // Check if employee has access to this exam
+    if (req.user.role === "employee") {
+      const { schoolId } = await getEmployeeSchool(req.user._id);
+      if (exam.school.toString() !== schoolId.toString()) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+    }
+
+    const questions = await Question.find({ exam: examId }).sort({
+      createdAt: 1,
+    });
+
+    res.json({
+      success: true,
+      exam,
+      questions,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Create question
 export const createQuestion = async (req, res) => {
   try {
     if (req.user.role !== "employee") {
@@ -97,6 +182,7 @@ export const createQuestion = async (req, res) => {
       negativeMarks,
       difficultyLevel,
       topic,
+      explanation,
     } = req.body;
 
     if (!examId || !questionText || !options || correctAnswer === undefined) {
@@ -119,6 +205,7 @@ export const createQuestion = async (req, res) => {
     if (!exam) {
       return res.status(404).json({ message: "Exam not found" });
     }
+
     if (exam.status === "published") {
       return res.status(400).json({
         message: "Cannot modify published exam",
@@ -135,14 +222,15 @@ export const createQuestion = async (req, res) => {
       questionText,
       options,
       correctAnswer,
-      marks,
-      negativeMarks,
-      difficultyLevel,
-      topic,
+      marks: marks || 1,
+      negativeMarks: negativeMarks || 0,
+      difficultyLevel: difficultyLevel || "medium",
+      topic: topic || "General",
+      explanation,
       createdByEmployee: employeeId,
     });
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Question added successfully",
       question,
@@ -160,330 +248,89 @@ export const publishExam = async (req, res) => {
 
     const { examId } = req.body;
 
+    if (!examId) {
+      return res.status(400).json({ message: "Exam ID required" });
+    }
+
     const { schoolId } = await getEmployeeSchool(req.user._id);
 
     const exam = await Exam.findById(examId);
 
-    if (!exam) return res.status(404).json({ message: "Exam not found" });
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
 
     if (exam.school.toString() !== schoolId.toString()) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const questionCount = await Question.countDocuments({ exam: examId });
-
-    if (questionCount === 0) {
-      return res.status(400).json({ message: "Add at least one question" });
+    if (exam.status === "published") {
+      return res.status(400).json({ message: "Exam already published" });
     }
 
-    exam.status = "published";
-    await exam.save();
-
-    res.json({ success: true, message: "Exam published successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-export const getAvailableExams = async (req, res) => {
-  try {
-    // 1️⃣ Role validation
-    if (req.user.role !== "student") {
-      return res.status(403).json({
-        success: false,
-        message: "Only students allowed",
-      });
-    }
-
-    // 2️⃣ Get student profile
-    const student = await Student.findOne({ user: req.user._id }).lean();
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student profile not found",
-      });
-    }
-
-    const now = new Date();
-
-    // 3️⃣ Production-safe query
-    const exams = await Exam.find({
-      school: student.school,              // ObjectId match
-      grade: String(student.grade),        // Type safety
-      status: "published",
-      startTime: { $lte: now },            // Already started
-      endTime: { $gte: now },              // Not expired
-    })
-      .select("title subject startTime endTime duration")
-      .sort({ startTime: 1 })
-      .lean();
-
-    // 4️⃣ Format response safely
-    const formatted = exams.map((exam) => {
-      const remainingMs = new Date(exam.endTime) - now;
-
-      return {
-        _id: exam._id,
-        title: exam.title,
-        subject: exam.subject,
-        startTime: exam.startTime,
-        endTime: exam.endTime,
-        duration: exam.duration,
-        remainingTimeInMinutes: Math.max(
-          0,
-          Math.floor(remainingMs / 60000)
-        ),
-        isActive: remainingMs > 0,
-      };
+    const questionCount = await Question.countDocuments({
+      exam: exam._id,
     });
 
-    return res.status(200).json({
-      success: true,
-      count: formatted.length,
-      exams: formatted,
-    });
-
-  } catch (err) {
-    console.error("getAvailableExams error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-export const getExamQuestions = async (req, res) => {
-  try {
-    const { examId } = req.params;
-    if (!examId) {
-      return res.status(403).json({ message: "exam id not found" });
-    }
-    if (req.user.role !== "student") {
-      return res.status(403).json({ message: "Only students allowed" });
-    }
-
-    const student = await Student.findOne({ user: req.user._id });
-
-    if (!student) {
-      return res.status(400).json({ message: "Student profile not found" });
-    }
-
-    const exam = await Exam.findById(examId);
-
-    if (!exam) return res.status(404).json({ message: "Exam not found" });
-
-    const now = new Date();
-
-    // Security checks
-    if (
-      exam.school.toString() !== student.school.toString() ||
-      exam.grade !== student.grade ||
-      exam.status !== "published" ||
-      now < exam.startTime ||
-      now > exam.endTime
-    ) {
-      return res.status(403).json({ message: "Exam not accessible" });
-    }
-
-    // Attempt must exist
-    const attempt = await ExamAttempt.findOne({
-      exam: examId,
-      student: student._id,
-      status: "in_progress",
-    });
-
-    if (!attempt) {
-      return res.status(400).json({ message: "Start exam first" });
-    }
-
-    const questions = await Question.find({ exam: examId }).select(
-      "-correctAnswer -options.isCorrect",
-    );
-
-    res.json({
-      success: true,
-      exam: {
-        title: exam.title,
-        duration: exam.duration,
-        endTime: exam.endTime,
-      },
-      questions,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-export const startExam = async (req, res) => {
-  try {
-    if (req.user.role !== "student") {
-      return res.status(403).json({ message: "Only students allowed" });
-    }
-
-    const { examId } = req.body;
-
-    if (!examId) {
-      return res.status(400).json({ message: "Exam id required" });
-    }
-
-    const student = await Student.findOne({ user: req.user._id });
-    if (!student) {
-      return res.status(400).json({ message: "Student profile not found" });
-    }
-
-    const exam = await Exam.findById(examId);
-    if (!exam) return res.status(404).json({ message: "Exam not found" });
-
-    const now = new Date();
-
-    if (
-      exam.school.toString() !== student.school.toString() ||
-      exam.grade !== student.grade ||
-      exam.status !== "published" ||
-      now < exam.startTime ||
-      now > exam.endTime
-    ) {
-      return res.status(403).json({ message: "Exam not accessible" });
-    }
-
-    const existing = await ExamAttempt.findOne({
-      exam: examId,
-      student: student._id,
-    });
-
-    if (existing && existing.status === "submitted") {
-      return res.status(400).json({ message: "Exam already submitted" });
-    }
-
-    if (existing && existing.status === "in_progress") {
-      return res.json({
-        success: true,
-        attemptId: existing._id,
-        message: "Resuming exam",
-      });
-    }
-
-    const attempt = await ExamAttempt.create({
-      exam: examId,
-      student: student._id,
-      startedAt: new Date(),
-      status: "in_progress",
-    });
-
-    res.json({
-      success: true,
-      attemptId: attempt._id,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-export const submitExam = async (req, res) => {
-  try {
-    if (req.user.role !== "student") {
-      return res.status(403).json({ message: "Only students allowed" });
-    }
-
-    const { examId, answers } = req.body;
-
-    if (!Array.isArray(answers)) {
-      return res.status(400).json({ message: "Invalid answers format" });
-    }
-
-    const student = await Student.findOne({ user: req.user._id });
-    if (!student) {
-      return res.status(400).json({ message: "Student profile not found" });
-    }
-
-    const exam = await Exam.findById(examId);
-    if (!exam) return res.status(404).json({ message: "Exam not found" });
-
-    const now = new Date();
-
-    if (
-      exam.school.toString() !== student.school.toString() ||
-      exam.grade !== student.grade ||
-      exam.status !== "published" ||
-      now < exam.startTime ||
-      now > exam.endTime
-    ) {
-      return res.status(403).json({ message: "Exam not accessible" });
-    }
-
-    const attempt = await ExamAttempt.findOne({
-      exam: examId,
-      student: student._id,
-      status: "in_progress",
-    });
-
-    if (!attempt) {
-      return res
-        .status(400)
-        .json({ message: "Exam not started or already submitted" });
-    }
-
-    // Attempt timeout check
-    const attemptEndTime = new Date(
-      attempt.startedAt.getTime() + exam.duration * 60000,
-    );
-
-    if (now > attemptEndTime) {
-      attempt.status = "submitted";
-      attempt.submittedAt = attemptEndTime;
-      attempt.score = 0; // or calculate partial if you store answers live
-      await attempt.save();
-
+    if (questionCount <= 0) {
       return res.status(400).json({
-        message: "Exam time expired. Auto submitted.",
+        message: "Add at least one question before publishing",
       });
     }
 
     const questions = await Question.find({ exam: examId });
 
-    // ADD THIS VALIDATION HERE
-    const questionIds = questions.map((q) => String(q._id));
+    const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
 
-    for (const ans of answers) {
-      if (!questionIds.includes(String(ans.question))) {
-        return res.status(400).json({ message: "Invalid question in answers" });
-      }
-    }
+    exam.totalMarks = totalMarks;
 
-    let score = 0;
+    exam.status = "published";
+    await exam.save();
 
-    for (const q of questions) {
-      const studentAnswer = answers.find(
-        (a) => String(a.question) === String(q._id),
-      );
-
-      if (!studentAnswer) continue;
-
-      if (Number(studentAnswer.selectedOption) === Number(q.correctAnswer)) {
-        score += q.marks;
-      } else {
-        score -= q.negativeMarks || 0;
-      }
-    }
-
-    attempt.answers = answers;
-    attempt.score = score;
-    attempt.submittedAt = new Date();
-    attempt.status = "submitted";
-
-    await attempt.save();
-
-    res.json({
+    return res.json({
       success: true,
-      message: "Exam submitted successfully",
-      score,
+      message: "Exam published successfully",
+      exam,
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Publish Exam Error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    const question = await Question.findById(questionId).populate("exam");
+
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    // Check if exam is published
+    if (question.exam.status === "published") {
+      return res
+        .status(400)
+        .json({ message: "Cannot delete from published exam" });
+    }
+
+    // Check authorization
+    const { schoolId } = await getEmployeeSchool(req.user._id);
+    if (question.exam.school.toString() !== schoolId.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await question.deleteOne();
+
+    res.json({
+      success: true,
+      message: "Question deleted successfully",
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
 
 export const getExamResults = async (req, res) => {
   try {
@@ -522,7 +369,10 @@ export const getExamResults = async (req, res) => {
     })
       .populate({
         path: "student",
-        select: "name email",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
       })
       .lean();
 
@@ -534,8 +384,8 @@ export const getExamResults = async (req, res) => {
 
     const results = attempts.map((attempt) => ({
       studentId: attempt.student?._id,
-      name: attempt.student?.name,
-      email: attempt.student?.email,
+      name: attempt.student?.user?.name,
+      email: attempt.student?.user?.email,
       score: attempt.score,
       totalMarks,
       percentage: totalMarks
@@ -553,12 +403,159 @@ export const getExamResults = async (req, res) => {
       },
       results,
     });
-
   } catch (err) {
     console.error("getExamResults error:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",
     });
+  }
+};
+
+export const getEmployeeExams = async (req, res) => {
+  try {
+    if (req.user.role !== "employee") {
+      return res.status(403).json({ message: "Only employees allowed" });
+    }
+
+    // Get employee's school
+    const employee = await Employee.findOne({ user: req.user._id });
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const posting = await EmployeePosting.findOne({
+      employee: employee._id,
+      isActive: true
+    });
+
+    if (!posting) {
+      return res.status(404).json({ message: "No active school posting found" });
+    }
+
+    // Get all exams for this school
+    const exams = await Exam.find({ school: posting.school })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Get question counts and student counts for each exam
+    const examsWithStats = await Promise.all(
+      exams.map(async (exam) => {
+        const questionCount = await Question.countDocuments({ exam: exam._id });
+        const studentCount = await ExamAttempt.countDocuments({ exam: exam._id });
+        const pendingVerifications = await ExamAttempt.countDocuments({
+          exam: exam._id,
+          status: "submitted",
+          isVerified: { $ne: true }
+        });
+
+        return {
+          ...exam,
+          questionCount,
+          studentCount,
+          pendingVerifications
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      exams: examsWithStats
+    });
+  } catch (error) {
+    console.error("getEmployeeExams error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateExam = async (req, res) => {
+  try {
+    if (req.user.role !== "employee") {
+      return res.status(403).json({ message: "Only employees allowed" });
+    }
+
+    const { examId } = req.params;
+    const { title, grade, subject, startTime, duration, description } = req.body;
+
+    const { schoolId } = await getEmployeeSchool(req.user._id);
+
+    const exam = await Exam.findById(examId);
+
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+
+    // Security check
+    if (exam.school.toString() !== schoolId.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Prevent editing published exam (recommended)
+    if (exam.status === "published") {
+      return res.status(400).json({
+        message: "Cannot edit published exam",
+      });
+    }
+
+    // Update fields
+    if (title) exam.title = title;
+    if (grade) exam.grade = grade;
+    if (subject) exam.subject = subject;
+    if (description !== undefined) exam.description = description;
+
+    if (startTime && duration) {
+      const start = new Date(startTime);
+      const end = new Date(start.getTime() + duration * 60000);
+      exam.startTime = start;
+      exam.endTime = end;
+      exam.duration = duration;
+    }
+
+    await exam.save();
+
+    res.json({
+      success: true,
+      message: "Exam updated successfully",
+      exam,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const deleteExam = async (req, res) => {
+  try {
+    if (req.user.role !== "employee") {
+      return res.status(403).json({ message: "Only employees allowed" });
+    }
+
+    const { examId } = req.params;
+
+    const { schoolId } = await getEmployeeSchool(req.user._id);
+
+    const exam = await Exam.findById(examId);
+
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+
+    // Security check
+    if (exam.school.toString() !== schoolId.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Delete related data
+    await Question.deleteMany({ exam: exam._id });
+    await ExamAttempt.deleteMany({ exam: exam._id });
+
+    await exam.deleteOne();
+
+    res.json({
+      success: true,
+      message: "Exam and related data deleted successfully",
+    });
+  } catch (err) {
+    console.error("Delete Exam Error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
