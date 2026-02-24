@@ -111,7 +111,7 @@ import ExamsList from "./pages/employee/ExamsList.jsx";
 import ExamResultsVerification from "./pages/employee/ExamResultsVerification.jsx";
 
 // Student Pages
-import StudentDashboard from "./pages/student/Dashboard.jsx";
+import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import ExamPage from "./pages/student/ExamPage.jsx";
 import MyResults from "./pages/student/MyResults.jsx";
 import DetailedResult from "./pages/student/DetailedResult.jsx";
