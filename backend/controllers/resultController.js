@@ -301,10 +301,16 @@ export const getStudentExamResult = async (req, res) => {
       .populate("exam", "title subject grade description startTime endTime")
       .populate({
         path: "student",
-        populate: {
-          path: "user",
-          select: "name email",
-        },
+        populate: [
+          {
+            path: "user",
+            select: "name email",
+          },
+          {
+            path: "school",
+            select: "name",
+          },
+        ],
       })
       .populate({
         path: "answers.question",
@@ -353,6 +359,7 @@ export const getStudentExamResult = async (req, res) => {
       student: {
         name: attempt.student?.user?.name,
         email: attempt.student?.user?.email,
+        school: attempt.student?.school?.name,
       },
       exam: {
         title: attempt.exam.title,

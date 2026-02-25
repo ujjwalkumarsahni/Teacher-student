@@ -68,16 +68,20 @@ const MyResults = () => {
     }
   };
 
- const handleDownloadPDF = () => {
-  if (selectedResult) {
+  const handleDownloadPDF = () => {
+    if (!selectedResult || selectedResult.result.status !== "PASS") {
+      toast.error("Certificate available only for passed exams");
+      return;
+    }
+
     generateResultPDF({
       student: selectedResult.student,
       exam: selectedResult.exam,
-      result: selectedResult.result
+      result: selectedResult.result,
     });
+
     toast.success("PDF downloaded successfully!");
-  }
-};
+  };
 
   const getFilteredResults = () => {
     if (!data?.results) return [];
@@ -85,14 +89,14 @@ const MyResults = () => {
     let filtered = [...data.results];
 
     if (searchTerm) {
-      filtered = filtered.filter(r =>
-        r.examTitle.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((r) =>
+        r.examTitle.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
     if (filterStatus !== "all") {
-      filtered = filtered.filter(r =>
-        filterStatus === "pass" ? r.status === "PASS" : r.status === "FAIL"
+      filtered = filtered.filter((r) =>
+        filterStatus === "pass" ? r.status === "PASS" : r.status === "FAIL",
       );
     }
 
@@ -140,9 +144,12 @@ const MyResults = () => {
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Award className="h-10 w-10 text-gray-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">No Results Yet</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              No Results Yet
+            </h2>
             <p className="text-gray-600 mb-6">
-              You haven't taken any exams yet. Start your first exam to see results here.
+              You haven't taken any exams yet. Start your first exam to see
+              results here.
             </p>
             <button
               onClick={() => navigate("/student/dashboard")}
@@ -164,9 +171,7 @@ const MyResults = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-[#0B234A]">
             My Results
           </h1>
-          <p className="text-gray-600 mt-1">
-            Track your exam performance
-          </p>
+          <p className="text-gray-600 mt-1">Track your exam performance</p>
         </div>
 
         {/* Stats Cards */}
@@ -176,7 +181,9 @@ const MyResults = () => {
               <BookOpen className="h-5 w-5 text-blue-600" />
               <span className="text-xs text-gray-500">Total</span>
             </div>
-            <p className="text-2xl font-bold text-[#0B234A]">{data.statistics.totalExams}</p>
+            <p className="text-2xl font-bold text-[#0B234A]">
+              {data.statistics.totalExams}
+            </p>
             <p className="text-xs text-gray-500">Exams Taken</p>
           </div>
 
@@ -185,7 +192,9 @@ const MyResults = () => {
               <CheckCircle className="h-5 w-5 text-green-600" />
               <span className="text-xs text-gray-500">Passed</span>
             </div>
-            <p className="text-2xl font-bold text-green-600">{data.statistics.passedExams}</p>
+            <p className="text-2xl font-bold text-green-600">
+              {data.statistics.passedExams}
+            </p>
             <p className="text-xs text-gray-500">Exams Passed</p>
           </div>
 
@@ -194,7 +203,9 @@ const MyResults = () => {
               <XCircle className="h-5 w-5 text-red-600" />
               <span className="text-xs text-gray-500">Failed</span>
             </div>
-            <p className="text-2xl font-bold text-red-600">{data.statistics.failedExams}</p>
+            <p className="text-2xl font-bold text-red-600">
+              {data.statistics.failedExams}
+            </p>
             <p className="text-xs text-gray-500">Exams Failed</p>
           </div>
 
@@ -203,7 +214,9 @@ const MyResults = () => {
               <TrendingUp className="h-5 w-5 text-yellow-600" />
               <span className="text-xs text-gray-500">Average</span>
             </div>
-            <p className="text-2xl font-bold text-yellow-600">{data.statistics.averagePercentage}%</p>
+            <p className="text-2xl font-bold text-yellow-600">
+              {data.statistics.averagePercentage}%
+            </p>
             <p className="text-xs text-gray-500">Avg. Score</p>
           </div>
         </div>
@@ -247,7 +260,9 @@ const MyResults = () => {
         {filteredResults.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center">
             <Filter className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No matching results</h3>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              No matching results
+            </h3>
             <p className="text-gray-500">Try adjusting your filters</p>
           </div>
         ) : (
@@ -262,9 +277,11 @@ const MyResults = () => {
                   key={result.attemptId}
                   className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                 >
-                  <div className={`h-1.5 ${
-                    result.status === "PASS" ? "bg-green-500" : "bg-red-500"
-                  }`}></div>
+                  <div
+                    className={`h-1.5 ${
+                      result.status === "PASS" ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  ></div>
 
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3">
@@ -276,11 +293,13 @@ const MyResults = () => {
                           {result.subject || "General"}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        result.status === "PASS" 
-                          ? "bg-green-100 text-green-700" 
-                          : "bg-red-100 text-red-700"
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          result.status === "PASS"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
                         {result.status}
                       </span>
                     </div>
@@ -292,7 +311,9 @@ const MyResults = () => {
                           {result.score}/{result.totalMarks}
                         </p>
                       </div>
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${scoreBg}`}>
+                      <div
+                        className={`w-16 h-16 rounded-full flex items-center justify-center ${scoreBg}`}
+                      >
                         <span className={`text-lg font-bold ${scoreColor}`}>
                           {result.percentage}%
                         </span>
@@ -329,8 +350,12 @@ const MyResults = () => {
                 <div className="flex items-center space-x-3">
                   <Award className="h-6 w-6" />
                   <div>
-                    <h2 className="text-xl font-semibold">{selectedResult.exam.title}</h2>
-                    <p className="text-sm text-white/80">{selectedResult.exam.subject}</p>
+                    <h2 className="text-xl font-semibold">
+                      {selectedResult.exam.title}
+                    </h2>
+                    <p className="text-sm text-white/80">
+                      {selectedResult.exam.subject}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -349,22 +374,27 @@ const MyResults = () => {
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
                   <p className="text-sm text-gray-500 mb-1">Your Score</p>
                   <p className="text-2xl font-bold text-[#0B234A]">
-                    {selectedResult.result.score}/{selectedResult.result.totalMarks}
+                    {selectedResult.result.score}/
+                    {selectedResult.result.totalMarks}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
                   <p className="text-sm text-gray-500 mb-1">Percentage</p>
-                  <p className={`text-2xl font-bold ${getScoreColor(selectedResult.result.percentage)}`}>
+                  <p
+                    className={`text-2xl font-bold ${getScoreColor(selectedResult.result.percentage)}`}
+                  >
                     {selectedResult.result.percentage}%
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
                   <p className="text-sm text-gray-500 mb-1">Status</p>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    selectedResult.result.status === "PASS" 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-red-100 text-red-700"
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      selectedResult.result.status === "PASS"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
                     {selectedResult.result.status}
                   </span>
                 </div>
@@ -403,9 +433,10 @@ const MyResults = () => {
                 </h3>
                 <div className="space-y-4">
                   {selectedResult.detailedAnswers.map((answer, idx) => {
-                    const studentAnswer = answer.selectedOption !== undefined 
-                      ? answer.options[answer.selectedOption] 
-                      : null;
+                    const studentAnswer =
+                      answer.selectedOption !== undefined
+                        ? answer.options[answer.selectedOption]
+                        : null;
                     const correctAnswer = answer.options[answer.correctAnswer];
 
                     return (
@@ -420,25 +451,31 @@ const MyResults = () => {
                         }`}
                       >
                         {/* Question Header */}
-                        <div className={`p-4 ${
-                          answer.isCorrect
-                            ? "bg-green-50"
-                            : answer.selectedOption
-                              ? "bg-red-50"
-                              : "bg-yellow-50"
-                        }`}>
+                        <div
+                          className={`p-4 ${
+                            answer.isCorrect
+                              ? "bg-green-50"
+                              : answer.selectedOption
+                                ? "bg-red-50"
+                                : "bg-yellow-50"
+                          }`}
+                        >
                           <div className="flex items-start space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-white ${
-                              answer.isCorrect
-                                ? "bg-green-500"
-                                : answer.selectedOption
-                                  ? "bg-red-500"
-                                  : "bg-yellow-500"
-                            }`}>
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-white ${
+                                answer.isCorrect
+                                  ? "bg-green-500"
+                                  : answer.selectedOption
+                                    ? "bg-red-500"
+                                    : "bg-yellow-500"
+                              }`}
+                            >
                               {idx + 1}
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium text-gray-800">{answer.questionText}</p>
+                              <p className="font-medium text-gray-800">
+                                {answer.questionText}
+                              </p>
                               <div className="flex items-center space-x-4 mt-2">
                                 <span className="text-xs px-2 py-1 bg-white rounded-full">
                                   Marks: {answer.marks}/{answer.questionMarks}
@@ -456,9 +493,11 @@ const MyResults = () => {
                         {/* Options Grid */}
                         <div className="p-4 bg-white space-y-2">
                           {answer.options.map((option, optIndex) => {
-                            const isCorrectOption = optIndex === answer.correctAnswer;
-                            const isSelectedOption = answer.selectedOption === optIndex;
-                            
+                            const isCorrectOption =
+                              optIndex === answer.correctAnswer;
+                            const isSelectedOption =
+                              answer.selectedOption === optIndex;
+
                             let optionBg = "bg-gray-50";
                             let optionBorder = "border-gray-200";
                             let optionText = "text-gray-700";
@@ -506,14 +545,22 @@ const MyResults = () => {
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
-                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                                      isCorrectOption || isSelectedOption
-                                        ? "bg-white"
-                                        : "bg-gray-200"
-                                    }`}>
+                                    <span
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
+                                        isCorrectOption || isSelectedOption
+                                          ? "bg-white"
+                                          : "bg-gray-200"
+                                      }`}
+                                    >
                                       {String.fromCharCode(65 + optIndex)}
                                     </span>
-                                    <span className={isCorrectOption || isSelectedOption ? "font-medium" : ""}>
+                                    <span
+                                      className={
+                                        isCorrectOption || isSelectedOption
+                                          ? "font-medium"
+                                          : ""
+                                      }
+                                    >
                                       {option}
                                     </span>
                                   </div>
@@ -528,7 +575,8 @@ const MyResults = () => {
                         {answer.explanation && (
                           <div className="p-4 bg-blue-50 border-t border-blue-200">
                             <p className="text-sm text-blue-800">
-                              <span className="font-medium">Explanation:</span> {answer.explanation}
+                              <span className="font-medium">Explanation:</span>{" "}
+                              {answer.explanation}
                             </p>
                           </div>
                         )}
@@ -541,8 +589,12 @@ const MyResults = () => {
               {/* Teacher's Remarks */}
               {selectedResult.result.remarks && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="font-medium text-blue-800 mb-1">Teacher's Remarks:</p>
-                  <p className="text-sm text-blue-700">{selectedResult.result.remarks}</p>
+                  <p className="font-medium text-blue-800 mb-1">
+                    Teacher's Remarks:
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    {selectedResult.result.remarks}
+                  </p>
                 </div>
               )}
             </div>
@@ -555,13 +607,15 @@ const MyResults = () => {
               >
                 Close
               </button>
-              <button
-                onClick={handleDownloadPDF}
-                className="px-4 py-2 bg-[#0B234A] text-white rounded-lg hover:bg-[#1a3a6e] transition-colors flex items-center space-x-2"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download PDF</span>
-              </button>
+              {selectedResult.result.status === "PASS" && (
+                <button
+                  onClick={handleDownloadPDF}
+                  className="px-4 py-2 bg-[#0B234A] text-white rounded-lg hover:bg-[#1a3a6e] transition-colors flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download PDF</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

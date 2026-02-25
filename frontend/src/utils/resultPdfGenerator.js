@@ -1,181 +1,158 @@
-// frontend/src/utils/resultPdfGenerator.js
-
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 
 export const generateResultPDF = (result) => {
   if (!result) return;
 
-  const doc = new jsPDF("landscape");
+  const doc = new jsPDF("landscape", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
   /* ================= COLORS ================= */
-  const NAVY = [11, 35, 74];     // #0B234A
-  const ORANGE = [234, 142, 10]; // #EA8E0A
-  const RED = [226, 34, 19];     // #E22213
 
-  /* ================= BACKGROUND ================= */
+  const NAVY = [11, 35, 74];
+  const ORANGE = [234, 142, 10];
+  const GRAY = [110, 110, 110];
+  /* ================= PREMIUM DIAGONAL GRADIENT ================= */
+  const gradX = 25;
+  const gradY = 25;
+  const gradWidth = pageWidth - 50;
+  const gradHeight = pageHeight - 50;
 
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, pageWidth, 25, "F");
+  // Diagonal Gradient (Top-left → Bottom-right)
+  const startColor = [245, 248, 255]; // light bluish white
+  const endColor = [255, 255, 255]; // pure white
 
-  doc.setFillColor(...ORANGE);
-  doc.rect(0, pageHeight - 20, pageWidth, 20, "F");
+  for (let y = 0; y < gradHeight; y++) {
+    for (let x = 0; x < gradWidth; x += 8) {
+      const ratio = (x + y) / (gradWidth + gradHeight);
 
-  /* ================= BORDER ================= */
+      const r = startColor[0] + (endColor[0] - startColor[0]) * ratio;
+      const g = startColor[1] + (endColor[1] - startColor[1]) * ratio;
+      const b = startColor[2] + (endColor[2] - startColor[2]) * ratio;
 
-  doc.setDrawColor(...NAVY);
-  doc.setLineWidth(3);
-  doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
-
-  /* ================= COMPANY LOGO ================= */
-
-  try {
-    doc.addImage("/logo.png", "PNG", 20, 12, 30, 12);
-  } catch (err) {
-    console.warn("Logo not found");
+      doc.setFillColor(r, g, b);
+      doc.rect(gradX + x, gradY + y, 8, 1, "F");
+    }
   }
 
-  /* ================= TITLE ================= */
+  /* ================= DOUBLE BORDER ================= */
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(24);
-  doc.text("CERTIFICATE OF ACHIEVEMENT", pageWidth / 2, 17, {
-    align: "center",
-  });
-
-  /* ================= MAIN BODY ================= */
-
-  doc.setTextColor(...NAVY);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "normal");
-  doc.text("This is proudly presented to", pageWidth / 2, 55, {
-    align: "center",
-  });
-
-  /* ================= STUDENT NAME ================= */
-
-  doc.setFontSize(34);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...ORANGE);
-  doc.text(
-    result?.student?.name ?? "Student Name",
-    pageWidth / 2,
-    75,
-    { align: "center" }
-  );
-
-  /* ================= EMAIL ================= */
-
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(120, 120, 120);
-  doc.text(
-    result?.student?.email ?? "student@email.com",
-    pageWidth / 2,
-    85,
-    { align: "center" }
-  );
-
-  /* ================= CERT TEXT ================= */
-
-  doc.setFontSize(16);
-  doc.setTextColor(...NAVY);
-
-  const certText = `for successfully completing "${result?.exam?.title ?? "-"}"
-and demonstrating outstanding performance.`;
-
-  doc.text(certText, pageWidth / 2, 105, {
-    align: "center",
-    maxWidth: pageWidth - 120,
-  });
-
-  /* ================= SCORE SECTION ================= */
-
-  const scoreBoxWidth = 140;
-  const scoreBoxX = pageWidth / 2 - scoreBoxWidth / 2;
-
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(scoreBoxX, 120, scoreBoxWidth, 50, 6, 6, "F");
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(4);
+  doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
 
   doc.setDrawColor(...ORANGE);
   doc.setLineWidth(2);
-  doc.roundedRect(scoreBoxX, 120, scoreBoxWidth, 50, 6, 6, "S");
+  doc.rect(15, 15, pageWidth - 30, pageHeight - 30);
 
+  /* ================= DATA ================= */
+
+  const studentName = result?.student?.name ?? "Student Name";
+  const examTitle = result?.exam?.title ?? "Course Title";
+  const schoolName = result?.student?.school ?? "Partner School";
+
+  try {
+    doc.addImage("/logo.png", "PNG", 20, 18, 45, 20);
+  } catch (err) {}
+
+  /* ================= TITLE ================= */
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  doc.setTextColor(...NAVY);
+  doc.text("CERTIFICATE OF COMPLETION", pageWidth / 2, 55, {
+    align: "center",
+  });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(14);
+  doc.setTextColor(...GRAY);
+  doc.text("This is to formally certify that", pageWidth / 2, 70, {
+    align: "center",
+  });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
+  doc.setTextColor(...ORANGE);
+  doc.text(studentName, pageWidth / 2, 85, {
+    align: "center",
+  });
+
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(14);
   doc.setTextColor(...NAVY);
-  doc.text("FINAL SCORE", pageWidth / 2, 135, { align: "center" });
-
-  doc.setFontSize(28);
-  doc.setFont("helvetica", "bold");
-  doc.text(
-    `${result?.result?.score ?? 0} / ${result?.result?.totalMarks ?? 0}`,
-    pageWidth / 2,
-    150,
-    { align: "center" }
-  );
-
-  /* ================= PERCENTAGE ================= */
-
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "normal");
-  doc.text(
-    `Percentage: ${result?.result?.percentage ?? 0}%`,
-    pageWidth / 2,
-    165,
-    { align: "center" }
-  );
-
-  /* ================= STATUS BADGE ================= */
-
-  const status = result?.result?.status ?? "-";
-  const isPass = status === "PASS";
-
-  doc.setFillColor(...(isPass ? ORANGE : RED));
-  doc.roundedRect(pageWidth / 2 - 30, 175, 60, 18, 5, 5, "F");
+  doc.text(`a student of ${schoolName}`, pageWidth / 2, 95, {
+    align: "center",
+  });
 
   doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text(status, pageWidth / 2, 187, { align: "center" });
+  doc.setTextColor(...GRAY);
+  doc.text(
+    "has successfully completed the prescribed assessment requirements for",
+    pageWidth / 2,
+    110,
+    { align: "center" },
+  );
 
-  /* ================= CERTIFICATE ID ================= */
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...NAVY);
+  doc.text(examTitle, pageWidth / 2, 120, {
+    align: "center",
+    maxWidth: pageWidth - 80,
+  });
 
-  if (result?.result?.certificateId) {
-    doc.setFontSize(10);
-    doc.setTextColor(...NAVY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(14);
+  doc.setTextColor(...NAVY);
+
+  doc.text(
+    `Achieved Score: ${result?.result?.score ?? 0} out of ${result?.result?.totalMarks ?? 0}`,
+    pageWidth / 2,
+    135,
+    { align: "center" },
+  );
+
+  doc.text(
+    `Overall Percentage: ${result?.result?.percentage ?? 0}%`,
+    pageWidth / 2,
+    143,
+    { align: "center" },
+  );
+
+  const issueDate = result?.result?.verifiedAt || result?.result?.submittedAt;
+
+  doc.setFontSize(11);
+  doc.setTextColor(...NAVY);
+
+  if (issueDate) {
     doc.text(
-      `Certificate ID: ${result.result.certificateId}`,
-      pageWidth - 80,
-      pageHeight - 30
+      `Issued on: ${format(new Date(issueDate), "dd MMMM yyyy")}`,
+      25,
+      pageHeight - 30,
     );
   }
 
-  /* ================= DATE & SIGNATURE ================= */
+  if (result?.result?.certificateId) {
+    doc.text(
+      `Certificate ID: ${result.result.certificateId}`,
+      pageWidth - 90,
+      pageHeight - 30,
+    );
+  }
 
-  doc.setFontSize(12);
-  doc.setTextColor(...NAVY);
-
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
   doc.text(
-    `Date of Issue: ${format(
-      new Date(result?.result?.verifiedAt || result?.result?.submittedAt),
-      "dd MMMM yyyy"
-    )}`,
-    40,
-    pageHeight - 35
+    "This certificate has been electronically generated and validated by the authorized assessment authority. No physical signature is required.",
+    pageWidth / 2,
+    pageHeight - 18,
+    { align: "center" },
   );
 
-  doc.text("Authorized Signature", pageWidth - 80, pageHeight - 40);
-  doc.setDrawColor(...NAVY);
-  doc.line(pageWidth - 100, pageHeight - 45, pageWidth - 40, pageHeight - 45);
-
-  /* ================= SAVE ================= */
+  const safeStudentName = studentName.replace(/[^a-zA-Z0-9]/g, "_");
 
   doc.save(
-    `${result?.exam?.title ?? "Exam"}_Certificate_${format(
-      new Date(),
-      "yyyyMMdd_HHmm"
-    )}.pdf`
+    `${safeStudentName}_Certificate_${format(new Date(), "yyyyMMdd_HHmm")}.pdf`,
   );
 };
