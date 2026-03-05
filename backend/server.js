@@ -40,6 +40,8 @@ import examRoutes from "./routes/examRoutes.js";
 import resultRoutes from "./routes/resultRoutes.js";
 import studentExamRoutes from "./routes/studentExamRoutes.js";
 
+import adminPanelRoutes from "./routes/adminPanelRoutes.js";
+
 app.use("/api/auth", authRoutes);
 app.use('/api/schools', schoolRoutes);
 app.use("/api/employee",employeeRoutes);
@@ -48,6 +50,8 @@ app.use("/api/students", studentRoutes);
 app.use("/api/student/exams", studentExamRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api", resultRoutes);
+
+app.use("/api/admin", adminPanelRoutes);
 
 
 // ======================

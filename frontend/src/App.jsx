@@ -9,17 +9,19 @@
 // import { Toaster } from "react-hot-toast";
 
 // import Login from "./pages/auth/Login";
-// import EmployeeDashboard from "./pages/employee/Dashboard";
-// import StudentCreationPage from "./pages/employee/StudentCreationPage";
-// import ExamCreationPage from "./pages/employee/ExamCreationPage";
+// import EmployeeDashboard from "./pages/employee/Dashboard.jsx";
+// import StudentCreationPage from "./pages/employee/StudentCreationPage.jsx";
+// import ExamCreationPage from "./pages/employee/ExamCreationPage.jsx";
+// import ExamsList from "./pages/employee/ExamsList.jsx";
+// import ExamResultsVerification from "./pages/employee/ExamResultsVerification.jsx";
 
 // // Student Pages
-// import StudentDashboard from "./pages/student/Dashboard";
-// import ExamPage from "./pages/student/ExamPage";
+// import StudentDashboard from "./pages/student/StudentDashboard.jsx";
+// import ExamPage from "./pages/student/ExamPage.jsx";
+// import MyResults from "./pages/student/MyResults.jsx";
 
-// import Layout from "./components/Layout";
-// import ProtectedRoute from "./components/ProtectedRoute";
-// import ExamResultsVerification from "./pages/employee/ExamResultsVerification";
+// import Layout from "./components/Layout.jsx";
+// import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 // function App() {
 //   return (
@@ -58,7 +60,8 @@
 //           <Route index element={<EmployeeDashboard />} />
 //           <Route path="create-exam" element={<ExamCreationPage />} />
 //           <Route path="manage-students" element={<StudentCreationPage />} />
-//           <Route path="students-result" element={<ExamResultsVerification />} />
+//           <Route path="exams" element={<ExamsList />} />
+//           <Route path="exam-results/:examId" element={<ExamResultsVerification />} />
 //         </Route>
 
 //         {/* STUDENT ROUTES */}
@@ -71,6 +74,7 @@
 //           }
 //         >
 //           <Route index element={<StudentDashboard />} />
+//           <Route path="results" element={<MyResults />} />
 //         </Route>
         
 //         {/* Separate route for exam taking (no layout) */}
@@ -93,7 +97,7 @@
 
 // export default App;
 
-// src/App.jsx
+// src/App.jsx (Updated with Admin Routes)
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -104,6 +108,8 @@ import {
 import { Toaster } from "react-hot-toast";
 
 import Login from "./pages/auth/Login";
+
+// Employee Pages
 import EmployeeDashboard from "./pages/employee/Dashboard.jsx";
 import StudentCreationPage from "./pages/employee/StudentCreationPage.jsx";
 import ExamCreationPage from "./pages/employee/ExamCreationPage.jsx";
@@ -115,8 +121,17 @@ import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import ExamPage from "./pages/student/ExamPage.jsx";
 import MyResults from "./pages/student/MyResults.jsx";
 
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import SchoolDetails from "./pages/admin/SchoolDetails.jsx";
+import ExamDetailsAdmin from "./pages/admin/ExamDetailsAdmin.jsx";
+import StudentDetailsAdmin from "./pages/admin/StudentDetailsAdmin.jsx";
+import AllExamsAdmin from "./pages/admin/AllExamsAdmin.jsx";
+import ResultsAdmin from "./pages/admin/ResultsAdmin.jsx";
+
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AllStudentAdmin from "./pages/admin/AllStudentAdmin.jsx";
 
 function App() {
   return (
@@ -172,6 +187,24 @@ function App() {
           <Route path="results" element={<MyResults />} />
         </Route>
         
+        {/* ADMIN ROUTES */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute role="admin">
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="schools/:schoolId" element={<SchoolDetails />} />
+          <Route path="exams/:examId" element={<ExamDetailsAdmin />} />
+          <Route path="students/:studentId" element={<StudentDetailsAdmin />} />
+          <Route path="all-exams" element={<AllExamsAdmin />} />
+          <Route path="all-student" element={<AllStudentAdmin />} />
+          <Route path="results" element={<ResultsAdmin />} />
+        </Route>
+        
         {/* Separate route for exam taking (no layout) */}
         <Route
           path="/student/exam/:examId"
@@ -191,3 +224,5 @@ function App() {
 }
 
 export default App;
+
+

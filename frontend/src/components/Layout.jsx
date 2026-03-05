@@ -147,7 +147,8 @@ import {
   Users,
   Award,
   FileText,
-  BarChart3
+  BarChart3,
+  School 
 } from "lucide-react";
 import { logoutUser } from "../services/authService";
 import { useAuth } from "../hooks/useAuth";
@@ -163,23 +164,32 @@ const Layout = () => {
     navigate("/login");
   };
 
-  const getMenuItems = () => {
-    if (user?.role === "employee") {
-      return [
-        { name: "Dashboard", path: "/employee", icon: LayoutIcon },
-        { name: "Create Exam", path: "/employee/create-exam", icon: BookOpen },
-        { name: "Manage Students", path: "/employee/manage-students", icon: Users },
-        { name: "All Exams", path: "/employee/exams", icon: FileText },
-        // { name: "Results", path: "/employee/exam-results", icon: Award }, 
-      ];
-    } else if (user?.role === "student") {
-      return [
-        { name: "My Exams", path: "/student", icon: BookOpen },
-        { name: "My Results", path: "/student/results", icon: Award },
-      ];
-    }
-    return [];
-  };
+  // Update the getMenuItems function in Layout.jsx
+const getMenuItems = () => {
+  if (user?.role === "employee") {
+    return [
+      { name: "Dashboard", path: "/employee", icon: LayoutIcon },
+      { name: "Create Exam", path: "/employee/create-exam", icon: BookOpen },
+      { name: "Manage Students", path: "/employee/manage-students", icon: Users },
+      { name: "All Exams", path: "/employee/exams", icon: FileText },
+    ];
+  } else if (user?.role === "student") {
+    return [
+      { name: "My Exams", path: "/student", icon: BookOpen },
+      { name: "My Results", path: "/student/results", icon: Award },
+    ];
+  } else if (user?.role === "admin") {
+    return [
+      { name: "Dashboard", path: "/admin", icon: LayoutIcon },
+      { name: "All Exams", path: "/admin/all-exams", icon: FileText },
+      { name: "All Student", path: "/admin/all-student", icon: FileText },
+      { name: "Results", path: "/admin/results", icon: Award },
+      { name: "Schools", path: "/admin/schools", icon: School },
+      { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
+    ];
+  }
+  return [];
+};
 
   const menuItems = getMenuItems();
 
